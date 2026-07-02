@@ -1,0 +1,69 @@
+services:
+  gateway:
+    build: ./gateway
+    container_name: gateway
+    environment:
+      - SERVER_PORT=8080
+#      - ORDERS_SERVICE_URL=http://orders-service:8081
+      - PAYMENTS_SERVICE=http://payments-service:8082
+    ports:
+      - "8080:8080"
+    networks:
+      - orbit-net
+    depends_on:
+#      orders-service:
+#        condition: service_started
+      payments-service:
+        condition: service_started
+
+  payments-service:
+    build: ./payments-service
+    container_name: payments-service
+    depends_on:
+      analysis-db:
+        condition: service_healthy
+    environment:
+      - SERVER_PORT=8082
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://analysis-db:5432/payments_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    ports:
+      - "8082:8082"
+    networks:
+      - orbit-net
+    volumes:
+      - uploads_data:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_DB: payments_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - orbit-net
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d payments_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  orbit-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  uploads_data:
