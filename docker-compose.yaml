@@ -19,12 +19,9 @@ services:
   payments-service:
     build: ./payments-service
     container_name: payments-service
-    depends_on:
-      analysis-db:
-        condition: service_healthy
     environment:
       - SERVER_PORT=8082
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://analysis-db:5432/payments_db
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://payments-db:5432/payments_db
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
     ports:
@@ -41,9 +38,9 @@ services:
       retries: 5
       start_period: 30s
 
-  postgres:
+  payments-db:
     image: postgres:16-alpine
-    container_name: postgres-db
+    container_name: payments-db
     environment:
       POSTGRES_DB: payments_db
       POSTGRES_USER: postgres
