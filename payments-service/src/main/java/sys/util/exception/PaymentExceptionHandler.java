@@ -23,7 +23,7 @@ public class PaymentExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
 
-    @ExceptionHandler(AccountNotFoundException.class)
+    @ExceptionHandler(InvalidAmountException.class)
     public ResponseEntity<ErrorResponse> handleInvalidAmount(InvalidAmountException ex) {
         ErrorResponse error = new ErrorResponse(ex.getErrorCode(), ex.getMessage(), Instant.now().toString());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
