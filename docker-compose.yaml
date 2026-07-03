@@ -1,23 +1,27 @@
 services:
   gateway:
-    build: ./gateway
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
     container_name: gateway
     environment:
       - SERVER_PORT=8080
-#      - ORDERS_SERVICE_URL=http://orders-service:8081
+      #      - ORDERS_SERVICE_URL=http://orders-service:8081
       - PAYMENTS_SERVICE=http://payments-service:8082
     ports:
       - "8080:8080"
     networks:
       - orbit-net
     depends_on:
-#      orders-service:
-#        condition: service_started
+      #      orders-service:
+      #        condition: service_started
       payments-service:
         condition: service_started
 
   payments-service:
-    build: ./payments-service
+    build:
+      context: .
+      dockerfile: payments-service/Dockerfile
     container_name: payments-service
     environment:
       - SERVER_PORT=8082
@@ -31,6 +35,9 @@ services:
     volumes:
       - uploads_data:/app/uploads
     restart: unless-stopped
+    depends_on:
+      payments-db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8082/actuator/health"]
       interval: 10s
