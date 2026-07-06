@@ -28,7 +28,7 @@ public class AccountService {
             throw new AccountAlreadyExistsException();
         }
 
-        Account account = Account.builder().userId(userId).balance(0).version(0L).build();
+        Account account = Account.builder().userId(userId).balance(0).build();
         return accountRepository.save(account);
     }
 
