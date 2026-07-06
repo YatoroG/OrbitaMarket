@@ -1,7 +1,7 @@
 package sys.model;
 
-import java.util.Map;
 import java.util.UUID;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -30,7 +30,7 @@ public class Order {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "payload", nullable = false)
-    private Map<String, Object> payload;
+    private JsonNode payload;
 
     @Column(name = "price", nullable = false)
     private Integer price;

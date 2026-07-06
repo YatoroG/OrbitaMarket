@@ -1,7 +1,6 @@
 package sys.service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sys.model.Order;
 import sys.model.enums.OrderStatus;
-import sys.model.enums.ProductType;
 import sys.model.request.AddOrderRequest;
 import sys.model.response.OrderResponse;
 import sys.repository.OrderRepository;
@@ -46,8 +44,11 @@ public class OrderService {
             throw new UnknownProductTypeException();
         }
 
-        int price = calculatePrice(request.productType(), request.payload());
-        if (price <= 0) {
+        if (request.payload() == null || request.payload().isMissingNode()) {
+            throw new InvalidPayloadException();
+        }
+
+        if (request.price() == null || request.price() <= 0) {
             throw new InvalidPriceException();
         }
 
@@ -57,28 +58,12 @@ public class OrderService {
                 .userId(userId)
                 .productType(request.productType())
                 .payload(request.payload())
-                .price(price)
+                .price(request.price())
                 .status(OrderStatus.PAYMENT_PENDING)
                 .build();
 
         orderRepository.save(order);
         return mapToResponse(order);
-    }
-
-    private int calculatePrice(ProductType type, Map<String, Object> payload) {
-        if (payload == null || payload.isEmpty()) {
-            throw new InvalidPayloadException();
-        }
-
-        return switch (type) {
-            case ARCHIVE -> {
-                if (!payload.containsKey("snapshot_id")) {
-                    throw new InvalidPayloadException();
-                }
-                yield ARCHIVE_PRICE;
-            }
-            case TASKING, MONITORING -> 0;
-        };
     }
 
     private OrderResponse mapToResponse(Order order) {
