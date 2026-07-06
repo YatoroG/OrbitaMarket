@@ -1,7 +1,5 @@
 package sys.service;
 
-import java.math.BigDecimal;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,35 +18,35 @@ public class AccountService {
     private final AccountRepository accountRepository;
 
     @Transactional(readOnly = true)
-    public Account getAccountById(UUID userId) {
+    public Account getAccountById(String userId) {
         return accountRepository.findByUserId(userId)
                 .orElseThrow(AccountNotFoundException::new);
     }
 
-    public Account addAccount(UUID userId) {
+    public Account addAccount(String userId) {
         if (accountRepository.findByUserId(userId).isPresent()) {
             throw new AccountAlreadyExistsException();
         }
 
-        Account account = Account.builder().userId(userId).balance(BigDecimal.ZERO).version(0L).build();
+        Account account = Account.builder().userId(userId).balance(0).version(0L).build();
         return accountRepository.save(account);
     }
 
-    public BigDecimal deposit(UUID userId, BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) <= 0L) {
+    public Integer deposit(String userId, Integer amount) {
+        if (amount <= 0L) {
             throw new InvalidAmountException();
         }
 
         Account account = accountRepository.findByUserId(userId)
                 .orElseThrow(AccountNotFoundException::new);
 
-        BigDecimal newBalance = account.getBalance().add(amount);
+        Integer newBalance = account.getBalance() + amount;
         account.setBalance(newBalance);
         accountRepository.save(account);
         return account.getBalance();
     }
 
-    public BigDecimal getBalance(UUID userId) {
+    public Integer getBalance(String userId) {
         Account account = accountRepository.findByUserId(userId)
                 .orElseThrow(AccountNotFoundException::new);
         return account.getBalance();

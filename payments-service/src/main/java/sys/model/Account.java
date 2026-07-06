@@ -1,12 +1,10 @@
 package sys.model;
 
-import java.math.BigDecimal;
-import java.util.UUID;
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "accounts")
+@Table(name = "accounts", schema = "payments_schema")
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -14,11 +12,11 @@ import lombok.*;
 @Setter
 public class Account {
     @Id
-    @Column(name = "user_id", unique = true, nullable = false)
-    private UUID userId;
+    @Column(name = "user_id", unique = true, nullable = false, length = 64)
+    private String userId;
 
     @Column(name = "balance", nullable = false)
-    private BigDecimal balance;
+    private Integer balance;
 
     @Version
     @Column(name = "version", nullable = false)

@@ -1,7 +1,5 @@
 package sys.controller;
 
-import java.math.BigDecimal;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -19,20 +17,20 @@ public class AccountController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void addAccount(@RequestHeader("X-User-Id") UUID userId) {
+    public void addAccount(@RequestHeader("X-User-Id") String userId) {
         accountService.addAccount(userId);
     }
 
     @PostMapping("/top-up")
     @ResponseStatus(HttpStatus.OK)
-    public void deposit(@RequestHeader("X-User-Id") UUID userId, @RequestBody TopUpRequest request) {
+    public void deposit(@RequestHeader("X-User-Id") String userId, @RequestBody TopUpRequest request) {
         accountService.deposit(userId, request.amount());
     }
 
     @GetMapping("/balance")
     @ResponseStatus(HttpStatus.OK)
-    public BalanceResponse getBalance(@RequestHeader("X-User-Id") UUID userId) {
-        BigDecimal currentBalance = accountService.getBalance(userId);
+    public BalanceResponse getBalance(@RequestHeader("X-User-Id") String userId) {
+        Integer currentBalance = accountService.getBalance(userId);
         return new BalanceResponse(userId, currentBalance, "geocredits");
     }
 }
