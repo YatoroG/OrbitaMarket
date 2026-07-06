@@ -6,17 +6,63 @@ services:
     container_name: gateway
     environment:
       - SERVER_PORT=8080
-      #      - ORDERS_SERVICE_URL=http://orders-service:8081
+      - ORDERS_SERVICE_URL=http://orders-service:8081
       - PAYMENTS_SERVICE=http://payments-service:8082
     ports:
       - "8080:8080"
     networks:
       - orbit-net
     depends_on:
-      #      orders-service:
-      #        condition: service_started
+      orders-service:
+        condition: service_healthy
       payments-service:
-        condition: service_started
+        condition: service_healthy
+
+  orders-service:
+    build:
+      context: .
+      dockerfile: orders-service/Dockerfile
+    container_name: orders-service
+    environment:
+      - SERVER_PORT=8081
+      - SERVER_URL=http://orders-service:8081
+      - PAYMENTS_SERVICE_URL=http://payments-service:8082
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://orders-db:5432/orders_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    ports:
+      - "8081:8081"
+    networks:
+      - orbit-net
+    restart: unless-stopped
+    depends_on:
+      orders-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  orders-db:
+    image: postgres:16-alpine
+    container_name: orders-db
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    networks:
+      - orbit-net
+    volumes:
+      - pgdata_orders:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d orders_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   payments-service:
     build:
@@ -57,7 +103,7 @@ services:
     networks:
       - orbit-net
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata_payments:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres -d payments_db" ]
       interval: 5s
@@ -69,5 +115,6 @@ networks:
     driver: bridge
 
 volumes:
-  pgdata:
+  pgdata_orders:
+  pgdata_payments:
   uploads_data:
