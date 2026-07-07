@@ -85,7 +85,7 @@ public class OrderService {
                 orderId,
                 userId,
                 request.price(),
-                EventType.OrderPaymentRequested,
+                EventType.OrderPaymentRequested.toString(),
                 LocalDateTime.now()
         );
 

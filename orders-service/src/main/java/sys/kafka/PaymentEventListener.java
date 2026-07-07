@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import sys.kafka.enums.EventType;
 import sys.service.OrderService;
 
 @Slf4j
@@ -21,16 +22,14 @@ public class PaymentEventListener {
         log.info("[Kafka] Получен результат обработки платежа: {}", result.orderId());
 
         try {
-            switch (result.eventType()) {
-                case OrderPaymentCompleted -> {
-                    orderService.setOrderPaid(result.orderId());
-                }
-                case OrderPaymentFailed -> {
-                    orderService.setOrderPaymentFailed(result.orderId(), "INSUFFICIENT_BALANCE");
-                }
+            EventType type = EventType.valueOf(result.eventType());
+            switch (type) {
+                case OrderPaymentCompleted -> orderService.setOrderPaid(result.orderId());
+                case OrderPaymentFailed -> orderService.setOrderPaymentFailed(result.orderId(), "INSUFFICIENT_BALANCE");
                 default -> log.error("[Kafka] Получен неизвестный тип события: {}", result.eventType());
             }
-
+        } catch (IllegalArgumentException e) {
+            log.error("[Kafka] Ошибка парсинга типа события {}: {}", result.eventType(), e.getMessage());
         } catch (Exception e) {
             log.error("[Kafka] Ошибка при обработке результата платежа", e);
         }

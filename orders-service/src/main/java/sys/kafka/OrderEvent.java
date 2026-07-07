@@ -6,5 +6,5 @@ import sys.kafka.enums.EventType;
 
 public record OrderEvent(UUID eventId, UUID orderId,
                          String userId, Integer amount,
-                         EventType eventType, LocalDateTime timestamp)
+                         String eventType, LocalDateTime timestamp)
 {}
