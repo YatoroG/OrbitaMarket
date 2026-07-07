@@ -43,5 +43,5 @@ public class OutboxEvent {
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
-    public enum OutboxStatus { PENDING, SENT, FAILED }
+    public enum OutboxStatus { PENDING, PROCESSING, SENT, FAILED }
 }

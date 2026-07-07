@@ -11,7 +11,13 @@ import org.springframework.data.repository.query.Param;
 
 public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> {
     @Query("SELECT o FROM OutboxEvent o WHERE o.status = :status ORDER BY o.createdAt ASC")
-    List<OutboxEvent> findByStatusOrderByCreatedAtAsc(@Param("status") OutboxEvent.OutboxStatus status, Pageable pageable);
+    List<OutboxEvent> findByStatusOrderByCreatedAtAsc(@Param("status") OutboxEvent.OutboxStatus status,
+                                                      Pageable pageable);
+
+    @Modifying
+    @Query("UPDATE OutboxEvent o SET o.status = :newStatus WHERE o.eventId IN :ids AND o.status = 'PENDING'")
+    int updateStatusForIds(@Param("ids") List<UUID> ids,
+                           @Param("newStatus") OutboxEvent.OutboxStatus newStatus);
 
     @Modifying
     @Query("UPDATE OutboxEvent o SET o.status = :status, o.processedAt = :processedAt WHERE o.eventId = :id")

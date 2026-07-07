@@ -3,6 +3,7 @@ package sys.kafka.outbox;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import sys.kafka.KafkaService;
 import sys.kafka.OrderEvent;
@@ -29,10 +31,9 @@ public class OutboxEventService {
     public void publishToOutbox(UUID orderId, OrderEvent event) {
         try {
             JsonNode jsonPayload = objectMapper.valueToTree(event);
-
             OutboxEvent outboxEvent = OutboxEvent.builder()
                     .orderId(orderId)
-                    .eventType(event.eventType().name())
+                    .eventType(event.eventType())
                     .payload(jsonPayload)
                     .createdAt(LocalDateTime.now())
                     .status(OutboxEvent.OutboxStatus.PENDING)
@@ -47,29 +48,52 @@ public class OutboxEventService {
 
     @Scheduled(fixedDelay = 5000)
     public void publishPendingEvents() {
+        List<OutboxEvent> eventsToProcess = fetchAndLockEvents();
+        if (eventsToProcess.isEmpty()) {
+            return;
+        }
+
+        for (OutboxEvent event : eventsToProcess) {
+            try {
+                OrderEvent orderEvent = objectMapper.treeToValue(event.getPayload(), OrderEvent.class);
+                kafkaService.sentToKafkaOrders(ORDERS_EVENTS_TOPIC, orderEvent);
+                updateEventStatus(event.getEventId(), OutboxEvent.OutboxStatus.SENT, LocalDateTime.now());
+                log.info("[Kafka] Outbox-событие {} отправлено", event.getEventId());
+            } catch (Exception e) {
+                log.error("[Kafka] Ошибка при отправке outbox-события {}: {}", event.getEventId(), e.getMessage());
+
+                if (event.getRetryCount() >= 3) {
+                    updateEventStatus(event.getEventId(), OutboxEvent.OutboxStatus.FAILED, LocalDateTime.now());
+                } else {
+                    updateEventRetry(event.getEventId(), OutboxEvent.OutboxStatus.PENDING);
+                }
+            }
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public List<OutboxEvent> fetchAndLockEvents() {
         List<OutboxEvent> pending = outboxEventRepository.findByStatusOrderByCreatedAtAsc(
                 OutboxEvent.OutboxStatus.PENDING, PageRequest.of(0, BATCH_SIZE));
 
         if (pending.isEmpty()) {
-            return;
+            return List.of();
         }
 
-        for (OutboxEvent event : pending) {
-            try {
-                OrderEvent orderEvent = objectMapper.treeToValue(event.getPayload(), OrderEvent.class);
-                kafkaService.sentToKafkaOrders(ORDERS_EVENTS_TOPIC, orderEvent);
+        List<UUID> ids = pending.stream().map(OutboxEvent::getEventId).toList();
+        List<UUID> eventIds = pending.stream().map(OutboxEvent::getEventId).collect(Collectors.toList());
+        outboxEventRepository.updateStatusForIds(eventIds, OutboxEvent.OutboxStatus.PROCESSING);
 
-                outboxEventRepository.updateStatus(event.getEventId(), OutboxEvent.OutboxStatus.SENT, LocalDateTime.now());
-                log.info("[Kafka] Outbox-событие {} отправлено", event.getEventId());
-            } catch (Exception e) {
-                log.error("Failed to send outbox event {}: {}", event.getEventId(), e.getMessage());
+        return pending;
+    }
 
-                if (event.getRetryCount() >= 3) {
-                    outboxEventRepository.updateStatus(event.getEventId(), OutboxEvent.OutboxStatus.FAILED, LocalDateTime.now());
-                } else {
-                    outboxEventRepository.incrementRetry(event.getEventId(), OutboxEvent.OutboxStatus.PENDING);
-                }
-            }
-        }
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateEventStatus(UUID id, OutboxEvent.OutboxStatus status, LocalDateTime time) {
+        outboxEventRepository.updateStatus(id, status, time);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateEventRetry(UUID id, OutboxEvent.OutboxStatus status) {
+        outboxEventRepository.incrementRetry(id, status);
     }
 }
