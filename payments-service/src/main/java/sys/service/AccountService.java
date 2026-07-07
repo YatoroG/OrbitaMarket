@@ -3,6 +3,7 @@ package sys.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import sys.model.Account;
 import sys.repository.AccountRepository;
@@ -53,6 +54,7 @@ public class AccountService {
         return account.getBalance();
     }
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void deductBalance(String userId, Integer amount) {
         if (amount <= 0) {
             throw new InvalidAmountException();

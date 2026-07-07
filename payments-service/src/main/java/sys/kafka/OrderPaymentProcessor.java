@@ -9,8 +9,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import sys.kafka.enums.EventType;
 import sys.kafka.inbox.InboxEventService;
-import sys.kafka.inbox.InboxEventUtils;
 import sys.service.BalanceService;
+
 
 import static sys.kafka.inbox.InboxEventUtils.createFailedInboxEvent;
 import static sys.kafka.inbox.InboxEventUtils.createSuccessInboxEvent;
@@ -27,8 +27,9 @@ public class OrderPaymentProcessor {
     public void process(OrderEvent event) {
         if (event == null) return;
 
-        if (inboxEventService.existsByEventId(event.eventId())) {
-            log.warn("[Kafka] Повтор сообщения {} пропущен", event.eventId());
+        if (inboxEventService.existsByOrderId(event.orderId())) {
+            log.warn("[Kafka] Повторный запрос для заказа {} пропущен", event.orderId());
+            sendResult(event, EventType.OrderPaymentCompleted.toString());
             return;
         }
 

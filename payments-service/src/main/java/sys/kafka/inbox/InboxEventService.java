@@ -13,8 +13,8 @@ public class InboxEventService {
     private final InboxEventRepository inboxEventRepository;
 
     @Transactional(readOnly = true)
-    public boolean existsByEventId(UUID eventId) {
-        return inboxEventRepository.existsByEventId(eventId);
+    public boolean existsByOrderId(UUID orderId) {
+        return inboxEventRepository.existsByOrderId(orderId);
     }
 
     @Transactional

@@ -11,7 +11,7 @@ CREATE TABLE payments_schema.accounts (
 
 CREATE TABLE payments_schema.payments_inbox (
     event_id UUID PRIMARY KEY,
-    order_id UUID NOT NULL,
+    order_id UUID NOT NULL UNIQUE,
     status VARCHAR(20) NOT NULL,
     amount INTEGER NOT NULL,
     new_balance INTEGER,
