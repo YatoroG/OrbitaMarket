@@ -29,13 +29,13 @@ spring:
     init:
       mode: ${SPRING_SQL_INIT_MODE:always}
   kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: kafka:9092
     properties:
       security.protocol: PLAINTEXT
     admin:
       auto-create-topics: true
     consumer:
-      group-id: kpo
+      group-id: orders-group-id
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:

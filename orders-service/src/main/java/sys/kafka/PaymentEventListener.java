@@ -17,19 +17,16 @@ public class PaymentEventListener {
     private static final String TOPIC = "payment-results";
 
     @KafkaListener(topics = TOPIC, groupId = "orders-backend-group")
-    public void handlePaymentResult(String message) {
-        log.info("[Kafka] Получен результат обработки платежа: {}", message);
+    public void handlePaymentResult(OrderEvent result) {
+        log.info("[Kafka] Получен результат обработки платежа: {}", result.orderId());
 
         try {
-            PaymentEvent result = objectMapper.readValue(message, PaymentEvent.class);
-
             switch (result.eventType()) {
                 case OrderPaymentCompleted -> {
                     orderService.setOrderPaid(result.orderId());
                 }
                 case OrderPaymentFailed -> {
-                    String errorReason = result.reason() != null ? result.reason() : "UNKNOWN_ERROR";
-                    orderService.setOrderPaymentFailed(result.orderId(), errorReason);
+                    orderService.setOrderPaymentFailed(result.orderId(), "INSUFFICIENT_BALANCE");
                 }
                 default -> log.error("[Kafka] Получен неизвестный тип события: {}", result.eventType());
             }

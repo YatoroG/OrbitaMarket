@@ -46,7 +46,6 @@ public class OutboxEventService {
     }
 
     @Scheduled(fixedDelay = 5000)
-    @Transactional
     public void publishPendingEvents() {
         List<OutboxEvent> pending = outboxEventRepository.findByStatusOrderByCreatedAtAsc(
                 OutboxEvent.OutboxStatus.PENDING, PageRequest.of(0, BATCH_SIZE));

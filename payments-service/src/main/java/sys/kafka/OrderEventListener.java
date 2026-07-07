@@ -13,8 +13,8 @@ public class OrderEventListener {
     private final OrderPaymentProcessor paymentProcessor;
 
     @KafkaListener(topics = TOPIC, groupId = "payments-backend-group")
-    public void handleEvent(String message) {
-        log.info("Получено событие: {}", message);
-        paymentProcessor.process(message);
+    public void handleEvent(OrderEvent event) {
+        log.info("Получено событие: {}", event);
+        paymentProcessor.process(event);
     }
 }
