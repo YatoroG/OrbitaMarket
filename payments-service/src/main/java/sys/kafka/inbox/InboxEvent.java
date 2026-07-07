@@ -2,7 +2,10 @@ package sys.kafka.inbox;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.*;
 
 @Entity
@@ -20,8 +23,8 @@ public class InboxEvent {
     @Column(name = "order_id", nullable = false)
     private UUID orderId;
 
-    @Enumerated(EnumType.STRING)
-    private InboxStatus status;
+    @Column(name = "status")
+    private String status;
 
     @Column(name = "amount", nullable = false)
     private Integer amount;
@@ -29,11 +32,9 @@ public class InboxEvent {
     @Column(name = "new_balance")
     private Integer newBalance;
 
-    @Column(name = "error_message", length = 50)
+    @Column(name = "error_message")
     private String errorMessage;
 
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
-
-    public enum InboxStatus { PROCESSED, FAILED }
 }

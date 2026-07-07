@@ -1,10 +1,13 @@
 package sys.kafka.inbox;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import sys.kafka.OrderEvent;
 
 @Slf4j
 @Service
@@ -17,9 +20,29 @@ public class InboxEventService {
         return inboxEventRepository.existsByOrderId(orderId);
     }
 
-    @Transactional
-    public void saveToInbox(InboxEvent inboxEvent) {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveSuccess(OrderEvent event, Integer currentBalance) {
+        InboxEvent inboxEvent = InboxEvent.builder()
+                .eventId(event.eventId())
+                .orderId(event.orderId())
+                .status("PROCESSED")
+                .amount(event.amount())
+                .newBalance(currentBalance)
+                .processedAt(LocalDateTime.now())
+                .build();
         inboxEventRepository.save(inboxEvent);
-        log.info("[Kafka] Получено inbox-событие: {}", inboxEvent.getEventId());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveFailed(OrderEvent event, String errorMessage) {
+        InboxEvent inboxEvent = InboxEvent.builder()
+                .eventId(event.eventId())
+                .orderId(event.orderId())
+                .status("FAILED")
+                .amount(event.amount())
+                .errorMessage(errorMessage)
+                .processedAt(LocalDateTime.now())
+                .build();
+        inboxEventRepository.save(inboxEvent);
     }
 }

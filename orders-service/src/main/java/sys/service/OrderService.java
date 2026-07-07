@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import sys.kafka.OrderEvent;
 import sys.kafka.enums.EventType;
@@ -99,7 +100,7 @@ public class OrderService {
         );
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void setOrderPaid(UUID orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(OrderNotFoundException::new);
         if (order.getStatus() == OrderStatus.PAYMENT_PENDING) {
@@ -108,7 +109,7 @@ public class OrderService {
         }
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void setOrderPaymentFailed(UUID orderId, String reason) {
         Order order = orderRepository.findById(orderId).orElseThrow(OrderNotFoundException::new);
         if (order.getStatus() == OrderStatus.PAYMENT_PENDING) {

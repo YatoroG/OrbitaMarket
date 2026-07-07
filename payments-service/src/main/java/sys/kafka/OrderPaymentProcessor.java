@@ -2,7 +2,6 @@ package sys.kafka;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -10,10 +9,7 @@ import org.springframework.stereotype.Service;
 import sys.kafka.enums.EventType;
 import sys.kafka.inbox.InboxEventService;
 import sys.service.BalanceService;
-
-
-import static sys.kafka.inbox.InboxEventUtils.createFailedInboxEvent;
-import static sys.kafka.inbox.InboxEventUtils.createSuccessInboxEvent;
+import sys.util.exception.InsufficientBalanceException;
 
 @Slf4j
 @Service
@@ -22,7 +18,6 @@ public class OrderPaymentProcessor {
     private final InboxEventService inboxEventService;
     private final BalanceService balanceService;
     private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
-    private final ObjectMapper objectMapper;
 
     public void process(OrderEvent event) {
         if (event == null) return;
@@ -35,12 +30,16 @@ public class OrderPaymentProcessor {
 
         try {
             Integer currentBalance = balanceService.deductWithCasRetries(event.userId(), event.amount());
-            inboxEventService.saveToInbox(createSuccessInboxEvent(event, currentBalance));
+            inboxEventService.saveSuccess(event, currentBalance);
             sendResult(event, EventType.OrderPaymentCompleted.toString());
             log.info("[Kafka] Платеж по заказу {} успешно обработан", event.orderId());
+        } catch (InsufficientBalanceException e) {
+            log.warn("[Kafka] Insufficient balance for user {} and amount {}", event.userId(), event.amount());
+            inboxEventService.saveFailed(event, e.getMessage());
+            sendResult(event, EventType.OrderPaymentFailed.toString());
         } catch (Exception e) {
             log.error("[Kafka] Ошибка при обработке платежа заказа {}", event.orderId(), e);
-            inboxEventService.saveToInbox(createFailedInboxEvent(event, e.getMessage()));
+            inboxEventService.saveFailed(event, e.getMessage());
             sendResult(event, EventType.OrderPaymentFailed.toString());
         }
     }

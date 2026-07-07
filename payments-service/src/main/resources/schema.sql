@@ -15,7 +15,7 @@ CREATE TABLE payments_schema.payments_inbox (
     status VARCHAR(20) NOT NULL,
     amount INTEGER NOT NULL,
     new_balance INTEGER,
-    error_message VARCHAR(50),
+    error_message TEXT,
     processed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
