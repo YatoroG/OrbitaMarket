@@ -8,6 +8,7 @@ import sys.model.Account;
 import sys.repository.AccountRepository;
 import sys.util.exception.AccountAlreadyExistsException;
 import sys.util.exception.AccountNotFoundException;
+import sys.util.exception.InsufficientBalanceException;
 import sys.util.exception.InvalidAmountException;
 
 @Slf4j
@@ -50,5 +51,21 @@ public class AccountService {
         Account account = accountRepository.findByUserId(userId)
                 .orElseThrow(AccountNotFoundException::new);
         return account.getBalance();
+    }
+
+    public void deductBalance(String userId, Integer amount) {
+        if (amount <= 0) {
+            throw new InvalidAmountException();
+        }
+
+        Account account = accountRepository.findByUserId(userId)
+                .orElseThrow(AccountNotFoundException::new);
+
+        if (account.getBalance() < amount) {
+            throw new InsufficientBalanceException();
+        }
+
+        account.setBalance(account.getBalance() - amount);
+        accountRepository.save(account);
     }
 }
