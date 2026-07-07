@@ -1,5 +1,6 @@
 package sys.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -7,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sys.kafka.OrderEvent;
+import sys.kafka.enums.EventType;
+import sys.kafka.outbox.OutboxEventService;
 import sys.model.Order;
 import sys.model.enums.OrderStatus;
 import sys.model.request.AddOrderRequest;
@@ -22,20 +26,32 @@ import sys.util.exception.UnknownProductTypeException;
 @RequiredArgsConstructor
 @Transactional
 public class OrderService {
-    private static final int ARCHIVE_PRICE = 120;
     private final OrderRepository orderRepository;
+    private final OutboxEventService outboxEventService;
 
     @Transactional(readOnly = true)
     public OrderResponse getOrderById(UUID orderId) {
-        Order order = orderRepository.findById(orderId)
+        return orderRepository.findById(orderId)
+                .map(order -> new OrderResponse(
+                        order.getId(),
+                        order.getUserId(),
+                        order.getProductType(),
+                        order.getPrice(),
+                        order.getStatus().name()
+                ))
                 .orElseThrow(OrderNotFoundException::new);
-        return mapToResponse(order);
     }
 
     @Transactional(readOnly = true)
     public List<OrderResponse> getOrdersByUserId(String userId) {
         return orderRepository.findByUserId(userId).stream()
-                .map(this::mapToResponse)
+                .map(order -> new OrderResponse(
+                        order.getId(),
+                        order.getUserId(),
+                        order.getProductType(),
+                        order.getPrice(),
+                        order.getStatus().name()
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -53,6 +69,7 @@ public class OrderService {
         }
 
         UUID orderId = UUID.randomUUID();
+
         Order order = Order.builder()
                 .id(orderId)
                 .userId(userId)
@@ -61,12 +78,18 @@ public class OrderService {
                 .price(request.price())
                 .status(OrderStatus.PAYMENT_PENDING)
                 .build();
-
         orderRepository.save(order);
-        return mapToResponse(order);
-    }
 
-    private OrderResponse mapToResponse(Order order) {
+        OrderEvent orderEvent = new OrderEvent(
+                UUID.randomUUID(),
+                orderId,
+                userId,
+                request.price(),
+                EventType.OrderPaymentRequested,
+                LocalDateTime.now()
+        );
+
+        outboxEventService.publishToOutbox(orderId, orderEvent);
         return new OrderResponse(
                 order.getId(),
                 order.getUserId(),
@@ -74,5 +97,24 @@ public class OrderService {
                 order.getPrice(),
                 order.getStatus().name()
         );
+    }
+
+    @Transactional
+    public void setOrderPaid(UUID orderId) {
+        Order order = orderRepository.findById(orderId).orElseThrow(OrderNotFoundException::new);
+        if (order.getStatus() == OrderStatus.PAYMENT_PENDING) {
+            order.setStatus(OrderStatus.PAID);
+            orderRepository.save(order);
+        }
+    }
+
+    @Transactional
+    public void setOrderPaymentFailed(UUID orderId, String reason) {
+        Order order = orderRepository.findById(orderId).orElseThrow(OrderNotFoundException::new);
+        if (order.getStatus() == OrderStatus.PAYMENT_PENDING) {
+            order.setStatus(OrderStatus.PAYMENT_FAILED);
+            order.setFailureReason(reason);
+            orderRepository.save(order);
+        }
     }
 }

@@ -28,21 +28,21 @@ spring:
   sql:
     init:
       mode: ${SPRING_SQL_INIT_MODE:always}
-#  kafka:
-#    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:29093}
-#    properties:
-#      security.protocol: PLAINTEXT
-#    admin:
-#      auto-create-topics: true
-#    consumer:
-#      group-id: kpo
-#      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-#      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-#      properties:
-#        spring.json.trusted.packages: '*'
-#    producer:
-#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-#      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    properties:
+      security.protocol: PLAINTEXT
+    admin:
+      auto-create-topics: true
+    consumer:
+      group-id: kpo
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 springdoc:
   api-docs:
