@@ -18,7 +18,7 @@ RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
 COPY --from=builder --chown=appuser:appgroup /app/orders-service/build/libs/*.jar app.jar
 
-EXPOSE 8082
+EXPOSE 8081
 
 USER appuser
 
