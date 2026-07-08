@@ -67,4 +67,9 @@ public class OutboxEventService {
             }
         }
     }
+
+    public void updateEventType(UUID orderId, String newEventType) {
+        outboxEventRepository.updateEventType(orderId, newEventType);
+    }
+
 }

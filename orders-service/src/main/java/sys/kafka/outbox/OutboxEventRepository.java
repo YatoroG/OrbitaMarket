@@ -25,6 +25,12 @@ public interface OutboxEventRepository extends JpaRepository<OutboxEvent, UUID> 
                       @Param("processedAt") LocalDateTime processedAt);
 
     @Modifying
+    @Query("UPDATE OutboxEvent o SET o.eventType = :eventType WHERE o.orderId = :orderId")
+    void updateEventType(@Param("orderId") UUID orderId,
+                         @Param("eventType") String eventType);
+
+    @Modifying
     @Query("UPDATE OutboxEvent o SET o.status = :status, o.retryCount = o.retryCount + 1 WHERE o.eventId = :id")
-    void incrementRetry(@Param("id") UUID id, @Param("status") OutboxEvent.OutboxStatus status);
+    void incrementRetry(@Param("id") UUID id,
+                        @Param("status") OutboxEvent.OutboxStatus status);
 }
