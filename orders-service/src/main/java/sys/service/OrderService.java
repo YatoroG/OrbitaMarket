@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import sys.kafka.OrderEvent;
 import sys.kafka.enums.EventType;
@@ -77,9 +76,8 @@ public class OrderService {
                 .productType(request.productType())
                 .payload(request.payload())
                 .price(request.price())
-                .status(OrderStatus.PAYMENT_PENDING)
+                .status(OrderStatus.CREATED)
                 .build();
-        orderRepository.save(order);
 
         OrderEvent orderEvent = new OrderEvent(
                 UUID.randomUUID(),
@@ -91,6 +89,10 @@ public class OrderService {
         );
 
         outboxEventService.publishToOutbox(orderId, orderEvent);
+    
+        order.setStatus(OrderStatus.PAYMENT_PENDING);
+        orderRepository.save(order); 
+
         return new OrderResponse(
                 order.getId(),
                 order.getUserId(),
@@ -100,7 +102,7 @@ public class OrderService {
         );
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void setOrderPaid(UUID orderId) {
         Order order = orderRepository.findById(orderId).orElseThrow(OrderNotFoundException::new);
         if (order.getStatus() == OrderStatus.PAYMENT_PENDING) {
@@ -109,7 +111,7 @@ public class OrderService {
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void setOrderPaymentFailed(UUID orderId, String reason) {
         Order order = orderRepository.findById(orderId).orElseThrow(OrderNotFoundException::new);
         if (order.getStatus() == OrderStatus.PAYMENT_PENDING) {

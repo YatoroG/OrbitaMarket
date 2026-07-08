@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import sys.kafka.outbox.OutboxEventService;
 import sys.service.OrderService;
 
@@ -16,6 +17,7 @@ public class PaymentEventListener {
 
     private static final String TOPIC = "payment-results";
 
+    @Transactional
     @KafkaListener(topics = TOPIC, groupId = "orders-backend-group")
     public void handlePaymentResult(OrderEvent result) {
         if (result == null) return;
