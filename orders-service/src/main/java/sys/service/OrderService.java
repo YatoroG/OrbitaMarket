@@ -60,7 +60,7 @@ public class OrderService {
             throw new UnknownProductTypeException();
         }
 
-        if (request.payload() == null || request.payload().isMissingNode()) {
+        if (request.payload() == null || request.payload().isMissingNode() || request.payload().isEmpty()) {
             throw new InvalidPayloadException();
         }
 
