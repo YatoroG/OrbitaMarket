@@ -13,13 +13,11 @@ import sys.kafka.enums.EventType;
 import sys.kafka.outbox.OutboxEventService;
 import sys.model.Order;
 import sys.model.enums.OrderStatus;
+import sys.model.enums.ProductType;
 import sys.model.request.AddOrderRequest;
 import sys.model.response.OrderResponse;
 import sys.repository.OrderRepository;
-import sys.util.exception.InvalidPayloadException;
-import sys.util.exception.InvalidPriceException;
-import sys.util.exception.OrderNotFoundException;
-import sys.util.exception.UnknownProductTypeException;
+import sys.util.exception.*;
 
 @Slf4j
 @Service
@@ -55,19 +53,12 @@ public class OrderService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(noRollbackFor = {
+            UnknownProductTypeException.class,
+            InvalidPayloadException.class,
+            InvalidPriceException.class
+    })
     public OrderResponse addOrder(String userId, AddOrderRequest request) {
-        if (request.productType() == null) {
-            throw new UnknownProductTypeException();
-        }
-
-        if (request.payload() == null || request.payload().isMissingNode() || request.payload().isEmpty()) {
-            throw new InvalidPayloadException();
-        }
-
-        if (request.price() == null || request.price() <= 0) {
-            throw new InvalidPriceException();
-        }
-
         UUID orderId = UUID.randomUUID();
 
         Order order = Order.builder()
@@ -76,22 +67,38 @@ public class OrderService {
                 .productType(request.productType())
                 .payload(request.payload())
                 .price(request.price())
-                .status(OrderStatus.CREATED)
                 .build();
 
-        OrderEvent orderEvent = new OrderEvent(
-                UUID.randomUUID(),
-                orderId,
-                userId,
-                request.price(),
-                EventType.OrderPaymentRequested.toString(),
-                LocalDateTime.now()
-        );
+        try {
+            if (request.productType() == null) {
+                throw new UnknownProductTypeException();
+            }
+            if (request.payload() == null || request.payload().isMissingNode() || request.payload().isEmpty()) {
+                throw new InvalidPayloadException();
+            }
+            if (request.price() == null || request.price() <= 0) {
+                throw new InvalidPriceException();
+            }
 
-        outboxEventService.publishToOutbox(orderId, orderEvent);
-    
-        order.setStatus(OrderStatus.PAYMENT_PENDING);
-        orderRepository.save(order); 
+            OrderEvent orderEvent = new OrderEvent(
+                    UUID.randomUUID(),
+                    orderId,
+                    userId,
+                    request.price(),
+                    EventType.OrderPaymentRequested.toString(),
+                    LocalDateTime.now()
+            );
+            outboxEventService.publishToOutbox(orderId, orderEvent);
+
+            order.setStatus(OrderStatus.PAYMENT_PENDING);
+            orderRepository.save(order);
+
+        } catch (OrderException e) {
+            order.setStatus(OrderStatus.REJECTED);
+            order.setFailureReason(e.getErrorCode());
+            orderRepository.save(order);
+            throw e;
+        }
 
         return new OrderResponse(
                 order.getId(),
