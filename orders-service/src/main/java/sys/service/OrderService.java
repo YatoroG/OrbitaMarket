@@ -13,7 +13,6 @@ import sys.kafka.enums.EventType;
 import sys.kafka.outbox.OutboxEventService;
 import sys.model.Order;
 import sys.model.enums.OrderStatus;
-import sys.model.enums.ProductType;
 import sys.model.request.AddOrderRequest;
 import sys.model.response.OrderResponse;
 import sys.repository.OrderRepository;

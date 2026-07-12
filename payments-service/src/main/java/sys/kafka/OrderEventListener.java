@@ -14,7 +14,7 @@ public class OrderEventListener {
 
     @KafkaListener(topics = TOPIC, groupId = "payments-backend-group")
     public void handleEvent(OrderEvent event) {
-        log.info("Получено событие: {}", event);
+        log.info("[Kafka] Получено событие: {}", event);
         paymentProcessor.process(event);
     }
 }

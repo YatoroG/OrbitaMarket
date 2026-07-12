@@ -2,6 +2,7 @@ package sys.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import sys.model.Account;
 import sys.repository.AccountRepository;
@@ -23,16 +24,15 @@ public class BalanceService {
                 return accountRepository.findByUserId(userId)
                         .map(Account::getBalance)
                         .orElse(0);
-
-            } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
-                log.warn("CAS конфликт версий для пользователя {}. Попытка {} из {}", userId, attempt, maxRetries);
+            } catch (ObjectOptimisticLockingFailureException e) {
+                log.warn("Конфликт версий для пользователя {}. Попытка {} из {}", userId, attempt, maxRetries);
                 if (attempt == maxRetries) {
                     throw new RuntimeException("Не удалось списать баланс: высокая конкуренция данных", e);
                 }
                 waitForNextAttempt();
             }
         }
-        throw new RuntimeException("Непредвиденный сбой логики ретраев");
+        throw new RuntimeException("Непредвиденный сбой");
     }
 
     private void waitForNextAttempt() {

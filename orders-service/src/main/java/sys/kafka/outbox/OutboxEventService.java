@@ -58,7 +58,7 @@ public class OutboxEventService {
                 outboxProcessor.updateEventStatus(event.getEventId(), OutboxEvent.OutboxStatus.SENT, LocalDateTime.now());
                 log.info("[Kafka] Outbox-событие {} отправлено", event.getEventId());
             } catch (Exception e) {
-                log.error("Ошибка при отправке outbox-события {}: {}", event.getEventId(), e.getMessage());
+                log.error("[Kafka] Ошибка при отправке outbox-события {}: {}", event.getEventId(), e.getMessage());
                 if (event.getRetryCount() >= 3) {
                     outboxProcessor.updateEventStatus(event.getEventId(), OutboxEvent.OutboxStatus.FAILED, LocalDateTime.now());
                 } else {

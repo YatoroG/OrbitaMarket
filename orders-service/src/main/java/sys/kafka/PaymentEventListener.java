@@ -30,11 +30,11 @@ public class PaymentEventListener {
             if ("OrderPaymentCompleted".equalsIgnoreCase(type)) {
                 orderService.setOrderPaid(result.orderId());
                 outboxEventService.updateEventType(result.orderId(), type);
-                log.info("[Business] Статус заказа {} успешно обновлен на PAID", result.orderId());
+                log.info("[Kafka] Статус заказа {} успешно обновлен на PAID", result.orderId());
             } else if ("OrderPaymentFailed".equalsIgnoreCase(type)) {
                 orderService.setOrderPaymentFailed(result.orderId(), "INSUFFICIENT_BALANCE");
                 outboxEventService.updateEventType(result.orderId(), type);
-                log.info("[Business] Заказ {} отклонен: недостаточно средств", result.orderId());
+                log.info("[Kafka] Заказ {} отклонен: недостаточно средств", result.orderId());
             } else {
                 log.error("[Kafka] Получен неизвестный тип события: {}", type);
             }
