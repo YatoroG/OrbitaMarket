@@ -4,6 +4,7 @@
 title [OrbitaMarket] C2 — Container Diagram
 
 skinparam defaultFontName "Arial"
+scale 900 width
 skinparam dpi 250
 
 UpdateElementStyle("person", "#4D4D5C", "#FFFFFF", "#4D4D5C")
