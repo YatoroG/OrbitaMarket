@@ -1,0 +1,28 @@
+@startuml
+!include <C4/C4_Container>
+
+title [OrbitaMarket] C1 — System Context
+
+skinparam defaultFontName "Arial"
+skinparam dpi 250
+
+UpdateElementStyle("person", "#4D4D5C", "#FFFFFF", "#4D4D5C")
+UpdateElementStyle("system", "#8E9AA6", "#FFFFFF", "#8E9AA6")
+UpdateRelStyle("#4A5568", "#4A5568")
+
+skinparam arrow {
+    Color #4A5568
+    FontColor #1C202B
+}
+
+Person(operator, "Оператор ДЗЗ", "Заказывает будущую съемку, отслеживает свои снимки")
+Person(analyst, "Аналитик", "Приобретает архивные снимки, заказывает подписку на мониторинг территорий")
+Person(admin, "Администратор", "Управляет данными внутри платформы")
+
+System(orbita_market, "Платформа OrbitaMarket", "Позволяет заказывать архивные снимки, будущие съемки и подписки на мониторинг территории")
+
+Rel_Right(operator, orbita_market, "Отправляет заказы, проверяет баланс", "HTTP/REST через API Gateway")
+Rel_Left(analyst, orbita_market, "Запрашивает архивные снимки и подписки", "HTTP/REST через API Gateway")
+Rel_Down(admin, orbita_market, "Управляет счетами", "HTTP/REST через API Gateway")
+
+@enduml

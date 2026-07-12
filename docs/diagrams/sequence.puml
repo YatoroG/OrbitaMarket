@@ -1,0 +1,64 @@
+@startuml
+
+title [OrbitaMarket] Диаграмма потоков оплаты
+
+skinparam dpi 250
+
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+
+actor "Пользователь" as user
+participant "API Gateway" as gateway
+participant "orders-service" as orders
+database "orders_db" as orders_db
+queue "Брокер\n[Apache Kafka]" as kafka
+participant "payments-service" as payments
+database "payments_db" as payments_db
+
+user -> gateway: 1. POST /api/v1/orders/orders
+activate gateway
+
+gateway -> orders: Отправка запроса\nна создание заказа
+activate orders
+
+orders -> orders_db: 2. Сохранение заказа\nи запись в outbox
+orders_db --> orders
+
+user <-- gateway : 4. [HTTP] 201 Created + order_id
+deactivate gateway
+
+orders -> kafka : 3. Отправка OrderPaymentRequested
+deactivate orders
+activate kafka
+
+kafka -> payments : 5. Доставка OrderPaymentRequested
+deactivate kafka
+activate payments
+
+payments -> payments_db : 6. Проверка дубликатов\nпо payments_inbox
+payments_db --> payments
+
+alt На балансе достаточно геокредитов
+    payments -> payments_db: 7. Списание баланса со счета\nи запись в payments_inbox
+    payments_db --> payments
+    payments -> kafka : 8. Отправка OrderPaymentCompleted
+    activate kafka
+else Недостаточно геокредитов / Другая ошибка
+    payments -> kafka : 9. Отправка OrderPaymentFailed
+    activate kafka
+end
+deactivate payments
+
+kafka -> orders : 10. Доставка результата\n(OrderPaymentCompleted\n/ OrderPaymentFailed)
+deactivate kafka
+activate orders
+
+alt Получен OrderPaymentCompleted
+        orders -> orders_db: 11. Обновление заказа (status = PAID)
+else Получен OrderPaymentFailed
+        orders -> orders_db: 12. Обновление заказа (status = PAYMENT_FAILED)
+end
+orders_db --> orders
+deactivate orders
+
+@endum
