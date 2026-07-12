@@ -1,0 +1,51 @@
+@startuml
+!include <C4/C4_Container>
+
+title [OrbitaMarket] C2 — Container Diagram
+
+skinparam defaultFontName "Arial"
+skinparam dpi 250
+
+UpdateElementStyle("person", "#4D4D5C", "#FFFFFF", "#4D4D5C")
+UpdateElementStyle("system", "#8E9AA6", "#FFFFFF", "#8E9AA6")
+UpdateElementStyle("container", "#8E9AA6", "#FFFFFF", "#8E9AA6")
+UpdateRelStyle("#4A5568", "#4A5568")
+
+skinparam arrow {
+    Color #4A5568
+    FontColor #1C202B
+}
+
+Person(operator, "Оператор ДЗЗ", "Заказывает будущую съемку, отслеживает свои снимки")
+Person(analyst, "Аналитик", "Приобретает архивные снимки, заказывает подписку на мониторинг территорий")
+Person(admin, "Администратор", "Управляет данными внутри платформы")
+
+System_Boundary(orbita_boundary, "OrbitaMarket") {
+    Container(api_gateway, "API Gateway", "Java, Spring Cloud Gateway", "Единая точка входа, маршрутизатор HTTP")
+    
+    Container(orders_service, "Orders Service", "Java, Spring Boot", "Управляет различными заказами, их жизненным циклом и статусами оплаты")
+    Container(payments_service, "Payments Service", "Java, Spring Boot", "Управляет счетами и балансами геокредитов, пополнениями, асинхронными списаниями за заказы")
+
+    ContainerDb(orders_db, "Orders DB", "PostgreSQL", "Хранит данные заказов и orders_outbox для брокера")
+    ContainerDb(payments_db, "Payments DB", "PostgreSQL", "Хранит данные счетов и payments_inbox для брокера")
+
+    ContainerQueue(kafka_broker, "Брокер сообщений", "Apache Kafka", "Асинхронный обмен событиями")
+}
+
+Rel_D(operator, api_gateway, "REST / JSON", "HTTP")
+Rel_D(analyst, api_gateway, "REST / JSON", "HTTP")
+Rel_D(admin, api_gateway, "REST / JSON", "HTTP")
+
+Rel_L(api_gateway, orders_service, "Маршрутизация заказов", "HTTP / REST")
+Rel_R(api_gateway, payments_service, "Маршрутизация счетов и биллинга", "HTTP / REST")
+
+Rel_L(orders_service, orders_db, "Запись заказов и данных для outbox", "JDBC / SQL")
+Rel_R(payments_service, payments_db, "Запись счетов, обновление балансов и данных для inbox", "JDBC / SQL")
+
+Rel(orders_service, kafka_broker, "Отправка запроса на оплату заказа", "Async / Kafka")
+Rel(kafka_broker, payments_service, "Доставка запроса на оплату заказа", "Async / Kafka")
+
+Rel_R(payments_service, kafka_broker, "Отправка результата оплаты заказа", "Async / Kafka")
+Rel_L(kafka_broker, orders_service, "Доставка результата оплаты заказа", "Async / Kafka")
+
+@enduml
