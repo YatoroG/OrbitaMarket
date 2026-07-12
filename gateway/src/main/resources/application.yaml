@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: orders-service
+          uri: http://orders-service:8081
+          predicates:
+            - Path=/api/v1/orders/**
+        - id: payments-service
+          uri: http://payments-service:8082
+          predicates:
+            - Path=/api/v1/payments/**
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: Payments Service
+        url: /api/v1/payments/v3/api-docs
+      - name: Orders Service
+        url: /api/v1/orders/v3/api-docs

@@ -1,0 +1,51 @@
+server:
+  port: ${SERVER_PORT:8081}
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,openapi
+
+app:
+  payments-service:
+    url: ${SERVER_URL}
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:5432/orders_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:none}
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  sql:
+    init:
+      mode: ${SPRING_SQL_INIT_MODE:always}
+  kafka:
+    bootstrap-servers: kafka:9092
+    properties:
+      security.protocol: PLAINTEXT
+    admin:
+      auto-create-topics: true
+    consumer:
+      group-id: orders-group-id
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+springdoc:
+  api-docs:
+    path: /api/v1/orders/v3/api-docs
+  swagger-ui:
+    server-url: http://localhost:8080
